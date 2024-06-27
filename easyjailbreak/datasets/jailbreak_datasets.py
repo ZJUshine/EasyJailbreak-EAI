@@ -15,7 +15,7 @@ from typing import List, Union
 import torch
 from easyjailbreak.datasets import Instance
 from datasets import load_dataset
-
+import ast
 __all__ = ["JailbreakDataset"]
 
 class JailbreakDataset(torch.utils.data.Dataset):
@@ -61,21 +61,22 @@ class JailbreakDataset(torch.utils.data.Dataset):
             random.shuffle(self._dataset)
 
     @staticmethod
-    def load_csv(path = 'data.csv', headers:List[int] = None):
-        r"""
+    def load_csv(path='data.csv', headers: List[int] = None):
+        """
         Loads a CSV file into the dataset.
 
         :param str path: The path of the CSV file to be loaded.
         :param list[str] headers: A list of column names to be used as headers. Defaults to None.
         """
-        import pandas as pd
         dataset = JailbreakDataset([])
         with open(path, mode='r', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
+                # Parse the 'reference_responses' field from a string representation of a list into an actual list
+                if 'reference_responses' in row:
+                    row['reference_responses'] = ast.literal_eval(row['reference_responses'])
                 dataset.add(Instance(**dict(row)))
         return dataset
-
     @staticmethod
     def load_jsonl(path = 'data.jsonl'):
         r"""
@@ -187,6 +188,7 @@ class JailbreakDataset(torch.utils.data.Dataset):
         """
         data_list = [{'jailbreak_prompt': instance.jailbreak_prompt,
                     'query': instance.query,
+                    'reference_responses': str(instance.reference_responses),
                     'target_responses': str(instance.target_responses),
                     'eval_results': str(instance.eval_results)} for instance in self._dataset]
 
